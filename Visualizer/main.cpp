@@ -12,7 +12,8 @@ int main(int argc, char** argv) {
     LasDataset lasDS(argv[1]);
 
     // Open the dataset
-    lasDS.open();
+    if (lasDS.open() != LAS_OK)
+        return -1;
 
     return 0;
 }
