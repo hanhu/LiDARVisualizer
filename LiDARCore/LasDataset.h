@@ -22,26 +22,26 @@ protected:
 
     // PUBLIC HEADER BLOCK
     struct PUBLIC_HEADER_BLOCK {
-        char           fileSignature[4];
-        unsigned short fileSourceID;
-        unsigned short globalEncoding;
-        unsigned long  projectID_GUIDData1;
-        unsigned short projectID_GUIDData2;
-        unsigned short projectID_GUIDDdata3;
-        unsigned char  projectID_GUIDData4[8];
-        unsigned char  versionMajor;
-        unsigned char  versionMinor;
-        char           systemIdentifier[32];
-        char           generatingSoftware[32];
-        unsigned short fileCreationDayOfYear;
-        unsigned short fileCreationYear;
-        unsigned short headerSize;
-        unsigned long  offsetToPointData;
-        unsigned long  numberOfVariableLengthRecords;
-        unsigned char  pointDataRecordFormat;
-        unsigned char  pointDataRecordLength;
-        unsigned long  legacyNumberOfPointRecords;
-        unsigned long  legacyNumberOfPointsByReturn[5];
+        int8_t           fileSignature[4];
+        uint16_t fileSourceID;
+        uint16_t globalEncoding;
+        uint32_t  projectID_GUIDData1;
+        uint16_t projectID_GUIDData2;
+        uint16_t projectID_GUIDdata3;
+        uint8_t  projectID_GUIDData4[8];
+        uint8_t  versionMajor;
+        uint8_t  versionMinor;
+        int8_t           systemIdentifier[32];
+        int8_t           generatingSoftware[32];
+        uint16_t fileCreationDayOfYear;
+        uint16_t fileCreationYear;
+        uint16_t headerSize;
+        uint32_t  offsetToPointData;
+        uint32_t  numberOfVariableLengthRecords;
+        uint8_t  pointDataRecordFormat;
+        uint8_t  pointDataRecordLength;
+        uint32_t  legacyNumberOfPointRecords;
+        uint32_t  legacyNumberOfPointsByReturn[5];
         double         xScaleFactor;
         double         yScaleFactor;
         double         zScaleFactor;
@@ -54,11 +54,17 @@ protected:
         double         minY;
         double         maxZ;
         double         minZ;
-        unsigned long long startOfWaveformDataPacketRecord;
-        unsigned long long startOfFirstExtendedVariableLengthRecord;
-        unsigned long  numberOfExtendedVariableLengthRecord;
-        unsigned long long numberOfPointRecords;
-        unsigned long long numberOfPointsByReturn[15];
+        uint64_t startOfWaveformDataPacketRecord;
+        uint64_t startOfFirstExtendedVariableLengthRecord;
+        uint32_t  numberOfExtendedVariableLengthRecord;
+        union NumberOfPointRecords {
+            uint32_t numberOfPointRecords32bit;
+            uint64_t numberOfPointRecords64bit;
+        } numberOfPointRecords;
+        union NumberOfPointsByReturn {
+            uint32_t numberOfPointsByReturn32bit[5];
+            uint64_t numberOfPointsByReturn64bit[15];
+        } numberOfPointsByReturn;
     } m_publicHeaderBlock;
 };
 
