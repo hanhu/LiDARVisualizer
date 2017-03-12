@@ -6,15 +6,13 @@
 #define LIDARVISUALIZER_LASWRITER_H
 
 #include "LasDataset.h"
+#include "LasPoint.h"
 
 class LasWriter : public LasDataset{
 public:
-    LasWriter();
-    virtual ~LasWriter();
-
     void create(const char *fileName, const PUBLIC_HEADER_BLOCK &publicHeaderBlock,
                     const std::vector<VARIABLE_LENGTH_RECORD> &VLRs, const std::vector<EXTENDED_VARIABLE_LENGTH_RECORD> &EVLRs);
-    void writePointDataRecord(const POINT_DATA_RECORD& pdr);
+    void writePointDataRecord(const LasPoint &lasPoint);
     void close();
 protected:
 
@@ -22,20 +20,20 @@ private:
     void writeVariableLengthRecords(const std::vector<VARIABLE_LENGTH_RECORD> &variableLengthRecords);
     void writePublicHeaderBlock(const PUBLIC_HEADER_BLOCK &publicHeaderBlock);
 
-    void writePointDataRecord0(const POINT_DATA_RECORD& pdr);
-    void writePointDataRecord1(const POINT_DATA_RECORD& pdr);
-    void writePointDataRecord2(const POINT_DATA_RECORD& pdr);
-    void writePointDataRecord3(const POINT_DATA_RECORD& pdr);
-    void writePointDataRecord4(const POINT_DATA_RECORD& pdr);
-    void writePointDataRecord5(const POINT_DATA_RECORD& pdr);
-    void writePointDataRecord6(const POINT_DATA_RECORD& pdr);
-    void writePointDataRecord7(const POINT_DATA_RECORD& pdr);
-    void writePointDataRecord8(const POINT_DATA_RECORD& pdr);
-    void writePointDataRecord9(const POINT_DATA_RECORD& pdr);
-    void writePointDataRecord10(const POINT_DATA_RECORD& pdr);
-    void writeWavePacket(const POINT_DATA_RECORD& pdr);
+    void writePointDataRecord0(const LasPoint &lasPoint);
+    void writePointDataRecord1(const LasPoint &lasPoint);
+    void writePointDataRecord2(const LasPoint &lasPoint);
+    void writePointDataRecord3(const LasPoint &lasPoint);
+    void writePointDataRecord4(const LasPoint &lasPoint);
+    void writePointDataRecord5(const LasPoint &lasPoint);
+    void writePointDataRecord6(const LasPoint &lasPoint);
+    void writePointDataRecord7(const LasPoint &lasPoint);
+    void writePointDataRecord8(const LasPoint &lasPoint);
+    void writePointDataRecord9(const LasPoint &lasPoint);
+    void writePointDataRecord10(const LasPoint &lasPoint);
+    void writeWavePacket(const LasPoint &lasPoint);
 
-    std::function<void(const POINT_DATA_RECORD&)> m_fnWritePointDataRecord;
+    std::function<void(const LasPoint&)> m_fnWritePointDataRecord;
 };
 
 

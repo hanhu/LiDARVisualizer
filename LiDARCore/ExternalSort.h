@@ -9,9 +9,6 @@
 
 class ExternalSort {
 public:
-    ExternalSort();
-    virtual ~ExternalSort();
-
     size_t getChuckSize();
 };
 

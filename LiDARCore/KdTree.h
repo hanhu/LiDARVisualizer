@@ -9,16 +9,12 @@
 
 class KdTree {
 public:
-    KdTree();
-    virtual ~KdTree();
-
     void setDataSource(const std::shared_ptr<LasReader> pLasDataset);
     std::shared_ptr<LasReader> getDataSource() const;
     void build(const char *outLasFileName);
 
 protected:
     std::shared_ptr<LasReader> m_pLasDataset;
-
 };
 
 

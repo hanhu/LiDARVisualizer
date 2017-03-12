@@ -6,20 +6,16 @@
 
 using namespace std;
 
-LasDataset::LasDataset() {
-
-}
-
-LasDataset::~LasDataset() {
-
-}
-
 string LasDataset::getFileName() const {
     return m_fileName;
 }
 
 const PUBLIC_HEADER_BLOCK & LasDataset::getPublicHeaderBlock() const {
     return m_publicHeaderBlock;
+}
+
+uint16_t LasDataset::getHeaderSize() const {
+    return m_publicHeaderBlock.headerSize;
 }
 
 const std::vector<VARIABLE_LENGTH_RECORD> & LasDataset::getVariableLengthRecords() const {

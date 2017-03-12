@@ -11,18 +11,13 @@
 
 class ByteStream {
 public:
-    ByteStream();
-    ByteStream(char* stream);
-
-    virtual ~ByteStream();
-
     void setStream(char* stream);
 
     void readBytes(void* dst, size_t size);
     void writeBytes(const void* src, size_t size);
 
-    char* head() const;
-    char* get() const;
+    // stream position
+    uint64_t tell() const;
     void seek(long offset, int origin = SEEK_SET);
 
     template <typename T>

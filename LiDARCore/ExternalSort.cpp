@@ -4,14 +4,6 @@
 
 #include "ExternalSort.h"
 
-ExternalSort::ExternalSort() {
-
-}
-
-ExternalSort::~ExternalSort() {
-
-}
-
 size_t ExternalSort::getChuckSize() {
     return 20000;
 }

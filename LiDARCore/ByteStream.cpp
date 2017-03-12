@@ -3,19 +3,6 @@
 //
 
 #include "ByteStream.h"
-#include <stdio.h>
-
-ByteStream::ByteStream() {
-    m_streamHead = m_curPos = nullptr;
-}
-
-ByteStream::ByteStream(char *stream) : m_streamHead(stream), m_curPos(stream) {
-
-}
-
-ByteStream::~ByteStream() {
-
-}
 
 void ByteStream::setStream(char *stream) {
     m_streamHead = m_curPos = stream;
@@ -31,8 +18,8 @@ void ByteStream::writeBytes(const void *src, size_t size) {
     m_curPos += size;
 }
 
-char * ByteStream::head() const {
-    return m_streamHead;
+uint64_t ByteStream::tell() const {
+    return m_curPos - m_streamHead;
 }
 
 void ByteStream::seek(long int offset, int origin)
@@ -42,8 +29,4 @@ void ByteStream::seek(long int offset, int origin)
     } else if (origin == SEEK_CUR) {
         m_curPos += offset;
     }
-}
-
-char* ByteStream::get() const {
-    return m_curPos;
 }

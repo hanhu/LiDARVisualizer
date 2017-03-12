@@ -10,13 +10,6 @@
 
 using namespace std;
 
-KdTree::KdTree() : m_pLasDataset(nullptr) {
-}
-
-KdTree::~KdTree() {
-
-}
-
 void KdTree::setDataSource(const shared_ptr<LasReader> pLasDataset) {
     m_pLasDataset = pLasDataset;
 }

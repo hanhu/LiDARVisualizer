@@ -3,17 +3,10 @@
 //
 
 #include "LasWriter.h"
+#include "LasPoint.h"
 #include <fstream>
 
 using namespace std;
-
-LasWriter::LasWriter() {
-
-}
-
-LasWriter::~LasWriter() {
-
-}
 
 void LasWriter::create(const char *fileName, const PUBLIC_HEADER_BLOCK &publicHeaderBlock,
                        const std::vector<VARIABLE_LENGTH_RECORD> &VLRs, const std::vector<EXTENDED_VARIABLE_LENGTH_RECORD> &EVLRs)
@@ -55,9 +48,7 @@ void LasWriter::create(const char *fileName, const PUBLIC_HEADER_BLOCK &publicHe
     m_EVLRs = EVLRs;
 
     // create write point function
-    auto test = bind(&LasWriter::writePointDataRecord0, this);
-
-    function<void(const POINT_DATA_RECORD&)> fnWritePointDataRecordArr[11] = {
+    function<void(const LasPoint&)> fnWritePointDataRecordArr[11] = {
             bind(&LasWriter::writePointDataRecord0, this, placeholders::_1),
             bind(&LasWriter::writePointDataRecord1, this, placeholders::_1),
             bind(&LasWriter::writePointDataRecord2, this, placeholders::_1),
@@ -75,9 +66,9 @@ void LasWriter::create(const char *fileName, const PUBLIC_HEADER_BLOCK &publicHe
     m_byteStream.seek(getOffsetToPointData());
 }
 
-void LasWriter::writePointDataRecord(const POINT_DATA_RECORD& pdr)
+void LasWriter::writePointDataRecord(const LasPoint &lasPoint)
 {
-    m_fnWritePointDataRecord(pdr);
+    m_fnWritePointDataRecord(lasPoint);
 }
 
 void LasWriter::close() {
@@ -149,95 +140,71 @@ void LasWriter::writeVariableLengthRecords(const vector<VARIABLE_LENGTH_RECORD> 
     }
 }
 
-void LasWriter::writePointDataRecord0(const POINT_DATA_RECORD& pdr) {
-    m_byteStream << pdr.iX
-                 << pdr.iY
-                 << pdr.iZ
-                 << pdr.intensity;
-
-    char ch = pdr.returnNumber | (pdr.numberOfReturns << 3) | (pdr.scanDirectionFlag << 6) | (pdr.edgeOfFlightLine << 7);
-    m_byteStream << ch
-                 << pdr.classification;
-    char scanAngleRank = pdr.scanAngle;
-    m_byteStream << scanAngleRank
-                 << pdr.userData
-                 << pdr.pointSourceID;
+void LasWriter::writePointDataRecord0(const LasPoint &lasPoint) {
+    m_byteStream.writeBytes(&lasPoint.basicPointData.record0, sizeof(POINT_DATA_RECORD_FORMAT_0));
 }
 
-void LasWriter::writePointDataRecord1(const POINT_DATA_RECORD& pdr) {
-    writePointDataRecord0(pdr);
-    m_byteStream << pdr.GPSTime;
+void LasWriter::writePointDataRecord1(const LasPoint &lasPoint) {
+    writePointDataRecord0(lasPoint);
+    m_byteStream << lasPoint.GPSTime;
 }
 
-void LasWriter::writePointDataRecord2(const POINT_DATA_RECORD& pdr) {
-    writePointDataRecord0(pdr);
-    m_byteStream << pdr.red
-                 << pdr.green
-                 << pdr.blue;
+void LasWriter::writePointDataRecord2(const LasPoint &lasPoint) {
+    writePointDataRecord0(lasPoint);
+    m_byteStream << lasPoint.red
+                 << lasPoint.green
+                 << lasPoint.blue;
 }
 
-void LasWriter::writePointDataRecord3(const POINT_DATA_RECORD& pdr) {
-    writePointDataRecord1(pdr);
-    m_byteStream << pdr.red
-                 << pdr.green
-                 << pdr.blue;
+void LasWriter::writePointDataRecord3(const LasPoint &lasPoint) {
+    writePointDataRecord1(lasPoint);
+    m_byteStream << lasPoint.red
+                 << lasPoint.green
+                 << lasPoint.blue;
 }
 
-void LasWriter::writePointDataRecord4(const POINT_DATA_RECORD& pdr) {
-    writePointDataRecord1(pdr);
-    writeWavePacket(pdr);
+void LasWriter::writePointDataRecord4(const LasPoint &lasPoint) {
+    writePointDataRecord1(lasPoint);
+    writeWavePacket(lasPoint);
 }
 
-void LasWriter::writePointDataRecord5(const POINT_DATA_RECORD& pdr) {
-    writePointDataRecord3(pdr);
-    writeWavePacket(pdr);
+void LasWriter::writePointDataRecord5(const LasPoint &lasPoint) {
+    writePointDataRecord3(lasPoint);
+    writeWavePacket(lasPoint);
 }
 
-void LasWriter::writePointDataRecord6(const POINT_DATA_RECORD& pdr) {
-    m_byteStream << pdr.iX
-                 << pdr.iY
-                 << pdr.iZ
-                 << pdr.intensity;
-
-    char ch = pdr.returnNumber | (pdr.numberOfReturns << 4);
-    m_byteStream << ch;
-    ch = pdr.classificationFlags | (pdr.scannerChannel << 4) | (pdr.scanDirectionFlag << 6) | (pdr.edgeOfFlightLine << 7);
-    m_byteStream << ch
-                 << pdr.classification
-                 << pdr.userData
-                 << pdr.scanAngle
-                 << pdr.pointSourceID
-                 << pdr.GPSTime;
+void LasWriter::writePointDataRecord6(const LasPoint &lasPoint) {
+    m_byteStream.writeBytes(&lasPoint.basicPointData.record6, sizeof(POINT_DATA_RECORD_FORMAT_6));
 }
 
-void LasWriter::writePointDataRecord7(const POINT_DATA_RECORD& pdr) {
-    writePointDataRecord6(pdr);
-    m_byteStream << pdr.red
-                 << pdr.green
-                 << pdr.blue;
+void LasWriter::writePointDataRecord7(const LasPoint &lasPoint) {
+    writePointDataRecord6(lasPoint);
+    m_byteStream << lasPoint.red
+                 << lasPoint.green
+                 << lasPoint.blue;
 }
 
-void LasWriter::writePointDataRecord8(const POINT_DATA_RECORD& pdr) {
-    writePointDataRecord7(pdr);
-    m_byteStream << pdr.NIR;
+void LasWriter::writePointDataRecord8(const LasPoint &lasPoint) {
+    writePointDataRecord7(lasPoint);
+    m_byteStream << lasPoint.NIR;
 }
 
-void LasWriter::writePointDataRecord9(const POINT_DATA_RECORD& pdr) {
-    writePointDataRecord6(pdr);
-    writeWavePacket(pdr);
+void LasWriter::writePointDataRecord9(const LasPoint &lasPoint) {
+    writePointDataRecord6(lasPoint);
+    writeWavePacket(lasPoint);
 }
 
-void LasWriter::writePointDataRecord10(const POINT_DATA_RECORD& pdr) {
-    writePointDataRecord7(pdr);
-    writeWavePacket(pdr);
+void LasWriter::writePointDataRecord10(const LasPoint &lasPoint) {
+    writePointDataRecord7(lasPoint);
+    writeWavePacket(lasPoint);
 }
 
-void LasWriter::writeWavePacket(const POINT_DATA_RECORD &pdr) {
-    m_byteStream << pdr.wavePacketDescriptionIndex
-                 << pdr.byteOFfsetToWaveformData
-                 << pdr.waveformPacketSizeInBytes
-                 << pdr.returnPointWaveformLocation
-                 << pdr.X_t
-                 << pdr.Y_t
-                 << pdr.Z_t;
+void LasWriter::writeWavePacket(const LasPoint &lasPoint) {
+    m_byteStream << lasPoint.wavePacket.wavePacketDescriptionIndex
+                 << lasPoint.wavePacket.byteOffsetToWaveformData
+                 << lasPoint.wavePacket.waveformPacketSizeInBytes
+                 << lasPoint.wavePacket.returnPointWaveformLocation
+                 << lasPoint.wavePacket.X_t
+                 << lasPoint.wavePacket.Y_t
+                 << lasPoint.wavePacket.Z_t;
 }

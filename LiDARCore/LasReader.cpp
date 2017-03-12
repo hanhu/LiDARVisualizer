@@ -8,13 +8,6 @@
 
 using namespace std;
 
-LasReader::LasReader() {
-}
-
-LasReader::~LasReader() {
-
-}
-
 void LasReader::open(const char *fileName) {
     m_file.open(fileName);
     m_byteStream.setStream(m_file.data());
@@ -101,23 +94,28 @@ void LasReader::open(const char *fileName) {
     }
 
     // Read the first point data record
-    function<void(void)> fnReadPointDataRecordArr[] = {
-            bind(&LasReader::readPointDataRecord0, this),
-            bind(&LasReader::readPointDataRecord1, this),
-            bind(&LasReader::readPointDataRecord2, this),
-            bind(&LasReader::readPointDataRecord3, this),
-            bind(&LasReader::readPointDataRecord4, this),
-            bind(&LasReader::readPointDataRecord5, this),
-            bind(&LasReader::readPointDataRecord6, this),
-            bind(&LasReader::readPointDataRecord7, this),
-            bind(&LasReader::readPointDataRecord8, this),
-            bind(&LasReader::readPointDataRecord9, this),
-            bind(&LasReader::readPointDataRecord10, this)};
+    function<void(LasReader*)> fnReadPointDataRecordArr[] = {
+            bind(&LasReader::readPointDataRecord0, placeholders::_1),
+            bind(&LasReader::readPointDataRecord1, placeholders::_1),
+            bind(&LasReader::readPointDataRecord2, placeholders::_1),
+            bind(&LasReader::readPointDataRecord3, placeholders::_1),
+            bind(&LasReader::readPointDataRecord4, placeholders::_1),
+            bind(&LasReader::readPointDataRecord5, placeholders::_1),
+            bind(&LasReader::readPointDataRecord6, placeholders::_1),
+            bind(&LasReader::readPointDataRecord7, placeholders::_1),
+            bind(&LasReader::readPointDataRecord8, placeholders::_1),
+            bind(&LasReader::readPointDataRecord9, placeholders::_1),
+            bind(&LasReader::readPointDataRecord10, placeholders::_1)};
     m_fnReadPointDataRecord = fnReadPointDataRecordArr[getPointDataRecordFormat()];
 
+    m_lasPoint.init(getPointDataRecordFormat(), LasQuantizer(getXScaleFactor(), getYScaleFactor(), getZScaleFactor(), getXOffset(), getYOffset(), getZOffset()));
     m_byteStream.seek(getOffsetToPointData());
-    m_fnReadPointDataRecord();
+    m_fnReadPointDataRecord(this);
     m_pointIndex = 0;
+}
+
+void LasReader::close() {
+    m_file.close();
 }
 
 LasReader::iterator LasReader::begin() {
@@ -129,11 +127,11 @@ LasReader::const_iterator LasReader::begin() const {
 }
 
 LasReader::iterator LasReader::end() {
-    return LasReaderIterator(*this, getNumberOfPointRecords() - 1);
+    return LasReaderIterator(*this, getNumberOfPointRecords());
 }
 
 LasReader::const_iterator LasReader::end() const {
-    return LasReaderConstIterator(*this, getNumberOfPointRecords() - 1);
+    return LasReaderConstIterator(*this, getNumberOfPointRecords());
 }
 
 LasReader::iterator LasReader::rbegin() {
@@ -153,49 +151,26 @@ LasReader::const_iterator LasReader::rend() const {
 }
 
 void LasReader::readPointDataRecord0() {
-    m_byteStream >> m_pdr.iX
-                 >> m_pdr.iY
-                 >> m_pdr.iZ
-                 >> m_pdr.intensity;
-    scalePoint();
-    char c;
-    m_byteStream >> c;
-    m_pdr.returnNumber = c & 0x7;
-    m_pdr.numberOfReturns = (c >> 3) & 0x7;
-    m_pdr.scanDirectionFlag = (c >> 6) & 0x1;
-    m_pdr.edgeOfFlightLine = (c >> 7) & 0x1;
-
-    char scanAngleRank;
-    m_byteStream >> m_pdr.classification
-                 >> scanAngleRank
-                 >> m_pdr.userData
-                 >> m_pdr.pointSourceID;
-    m_pdr.scanAngle = scanAngleRank;
-}
-
-void LasReader::scalePoint() const {
-    m_pdr.X = m_pdr.iX * getXScaleFactor() + getXOffset();
-    m_pdr.Y = m_pdr.iY * getYScaleFactor() + getYOffset();
-    m_pdr.Z = m_pdr.iZ * getZScaleFactor() + getZOffset();
+    m_byteStream.readBytes(&m_lasPoint.basicPointData, sizeof(POINT_DATA_RECORD_FORMAT_0));
 }
 
 void LasReader::readPointDataRecord1() {
     readPointDataRecord0();
-    m_byteStream >> m_pdr.GPSTime;
+    m_byteStream >> m_lasPoint.GPSTime;
 }
 
 void LasReader::readPointDataRecord2() {
     readPointDataRecord0();
-    m_byteStream >> m_pdr.red
-                 >> m_pdr.green
-                 >> m_pdr.blue;
+    m_byteStream >> m_lasPoint.red
+                 >> m_lasPoint.green
+                 >> m_lasPoint.blue;
 }
 
 void LasReader::readPointDataRecord3() {
     readPointDataRecord1();
-     m_byteStream>> m_pdr.red
-                 >> m_pdr.green
-                 >> m_pdr.blue;
+     m_byteStream>> m_lasPoint.red
+                 >> m_lasPoint.green
+                 >> m_lasPoint.blue;
 }
 
 void LasReader::readPointDataRecord4() {
@@ -209,40 +184,19 @@ void LasReader::readPointDataRecord5() {
 }
 
 void LasReader::readPointDataRecord6() {
-    m_byteStream >> m_pdr.iX
-                 >> m_pdr.iY
-                 >> m_pdr.iZ
-                 >> m_pdr.intensity;
-    scalePoint();
-    char ch;
-    m_byteStream >> ch;
-    m_pdr.returnNumber = ch & 0xE;
-    m_pdr.returnNumber = (ch >> 4) & 0xE;
-
-    m_byteStream >> ch;
-    m_pdr.classificationFlags = ch & 0xE;
-    m_pdr.scannerChannel = (ch >> 4) & 0x3;
-    m_pdr.scanDirectionFlag = (ch >> 6) & 0x1;
-    m_pdr.edgeOfFlightLine = (ch >> 7) & 0x1;
-
-    m_byteStream >> m_pdr.classification
-                 >> m_pdr.userData
-                 >> m_pdr.scanAngle
-                 >> m_pdr.pointSourceID
-                 >> m_pdr.GPSTime;
+    m_byteStream.readBytes(&m_lasPoint.basicPointData, sizeof(POINT_DATA_RECORD_FORMAT_6));
 }
 
 void LasReader::readPointDataRecord7() {
     readPointDataRecord6();
-    m_byteStream >> m_pdr.GPSTime
-                 >> m_pdr.red
-                 >> m_pdr.green
-                 >> m_pdr.blue;
+    m_byteStream >> m_lasPoint.red
+                 >> m_lasPoint.green
+                 >> m_lasPoint.blue;
 }
 
 void LasReader::readPointDataRecord8() {
     readPointDataRecord7();
-    m_byteStream >> m_pdr.NIR;
+    m_byteStream >> m_lasPoint.NIR;
 }
 
 void LasReader::readPointDataRecord9() {
@@ -256,19 +210,19 @@ void LasReader::readPointDataRecord10() {
 }
 
 void LasReader::readWavePacket()  {
-    m_byteStream >> m_pdr.wavePacketDescriptionIndex
-                 >> m_pdr.byteOFfsetToWaveformData
-                 >> m_pdr.waveformPacketSizeInBytes
-                 >> m_pdr.returnPointWaveformLocation
-                 >> m_pdr.X_t
-                 >> m_pdr.Y_t
-                 >> m_pdr.Z_t;
+    m_byteStream >> m_lasPoint.wavePacket.wavePacketDescriptionIndex
+                 >> m_lasPoint.wavePacket.byteOffsetToWaveformData
+                 >> m_lasPoint.wavePacket.waveformPacketSizeInBytes
+                 >> m_lasPoint.wavePacket.returnPointWaveformLocation
+                 >> m_lasPoint.wavePacket.X_t
+                 >> m_lasPoint.wavePacket.Y_t
+                 >> m_lasPoint.wavePacket.Z_t;
 }
 
 void LasReader::readKthPoint(const uint64_t index) const {
     if (m_pointIndex != index) {
         m_byteStream.seek(getOffsetToPointData() + index * getPointDataRecordLength());
-        m_fnReadPointDataRecord();
+        m_fnReadPointDataRecord(const_cast<LasReader*>(this));
         m_pointIndex = index;
     }
 }
@@ -278,9 +232,9 @@ LasReaderIterator::LasReaderIterator(LasReader &lasReader, uint64_t pointIndex)
 
 }
 
-POINT_DATA_RECORD& LasReaderIterator::operator*() const {
+LasPoint & LasReaderIterator::operator*() const {
     m_lasReader.readKthPoint(m_pointIndex);
-    return m_lasReader.m_pdr;
+    return m_lasReader.m_lasPoint;
 }
 
 void LasReaderIterator::operator++() {
@@ -291,9 +245,9 @@ void LasReaderIterator::operator++(int) {
     m_pointIndex++;
 }
 
-POINT_DATA_RECORD* LasReaderIterator::operator->() const {
+LasPoint * LasReaderIterator::operator->() const {
     m_lasReader.readKthPoint(m_pointIndex);
-    return &m_lasReader.m_pdr;
+    return &m_lasReader.m_lasPoint;
 }
 
 bool LasReaderIterator::operator<(const LasReaderIterator &rhs) const {
@@ -310,9 +264,9 @@ LasReaderConstIterator::LasReaderConstIterator(const LasReaderIterator &iterator
 
 }
 
-const POINT_DATA_RECORD& LasReaderConstIterator::operator*() const {
+const LasPoint & LasReaderConstIterator::operator*() const {
     m_lasReader.readKthPoint(m_pointIndex);
-    return m_lasReader.m_pdr;
+    return m_lasReader.m_lasPoint;
 }
 
 void LasReaderConstIterator::operator++() {
@@ -323,9 +277,9 @@ void LasReaderConstIterator::operator++(int) {
     m_pointIndex++;
 }
 
-const POINT_DATA_RECORD* LasReaderConstIterator::operator->() const {
+const LasPoint * LasReaderConstIterator::operator->() const {
     m_lasReader.readKthPoint(m_pointIndex);
-    return &m_lasReader.m_pdr;
+    return &m_lasReader.m_lasPoint;
 }
 
 bool LasReaderConstIterator::operator<(const LasReaderConstIterator &rhs) const {

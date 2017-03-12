@@ -19,10 +19,6 @@ struct PointXYZI{
 
 class PrivatePointCloudDataset {
 public:
-    PrivatePointCloudDataset();
-
-    virtual ~PrivatePointCloudDataset();
-
     void create(const char *fileName, LasReader &lasReader);
 
 protected:

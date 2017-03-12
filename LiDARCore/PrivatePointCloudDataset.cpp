@@ -9,12 +9,6 @@
 
 using namespace std;
 
-PrivatePointCloudDataset::PrivatePointCloudDataset() {}
-
-PrivatePointCloudDataset::~PrivatePointCloudDataset() {
-
-}
-
 void PrivatePointCloudDataset::create(const char *fileName, LasReader &lasReader) {
     string strFileName = fileName;
     uint64_t numberOfBytes = sizeof(decltype(lasReader.getNumberOfPointRecords())) +
@@ -35,13 +29,6 @@ void PrivatePointCloudDataset::create(const char *fileName, LasReader &lasReader
     m_byteStream.setStream(m_file.data());
     m_byteStream << lasReader.getNumberOfPointRecords();
 
-    uint64_t index = 0;
-    for (LasReader::const_iterator it = lasReader.begin(); it < lasReader.end(); it++, index++, index++) {
-        m_byteStream << it->iX
-                     << it->iY
-                     << it->iZ
-                     << index;
-    }
 
     m_file.close();
 }

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <functional>
 #include "LasDataset.h"
+#include "LasPoint.h"
 
 class LasReader;
 
@@ -17,8 +18,14 @@ public:
     uint64_t m_pointIndex;
     LasReaderIterator(LasReader& lasReader, uint64_t pointIndex);
 
-    POINT_DATA_RECORD& operator *() const;
-    POINT_DATA_RECORD* operator->() const;
+    // Copy assignment operator and constructor
+    LasReaderIterator(const LasReaderIterator& other);
+
+    // Move assignment operator and constructor
+    LasReaderIterator(LasReaderIterator&& other);
+
+    LasPoint & operator*() const;
+    LasPoint * operator->() const;
     void operator++();
     void operator++(int);
     bool operator<(const LasReaderIterator& rhs) const;
@@ -31,8 +38,8 @@ public:
     LasReaderConstIterator(const LasReader& lasReader, uint64_t pointIndex);
     LasReaderConstIterator(const LasReaderIterator& iterator);
 
-    const POINT_DATA_RECORD& operator*() const;
-    const POINT_DATA_RECORD* operator->() const;
+    const LasPoint & operator*() const;
+    const LasPoint * operator->() const;
     void operator++();
     void operator++(int);
     bool operator<(const LasReaderConstIterator& rhs) const;
@@ -40,10 +47,8 @@ public:
 
 class LasReader : public LasDataset{
 public:
-    LasReader();
-    virtual ~LasReader();
-
     void open(const char* fileName);
+    void close();
 
     friend class LasReaderIterator;
     friend class LasReaderConstIterator;
@@ -63,21 +68,21 @@ public:
     iterator rend();
     const_iterator rend() const;
 
-    POINT_DATA_RECORD& front();
-    const POINT_DATA_RECORD& front() const;
+    LasPoint & front();
+    const LasPoint & front() const;
 
-    POINT_DATA_RECORD& back();
-    const POINT_DATA_RECORD& back() const;
+    LasPoint & back();
+    const LasPoint & back() const;
 
-    POINT_DATA_RECORD&operator[](uint64_t n);
-    const POINT_DATA_RECORD&operator[](uint64_t n) const;
+    LasPoint & operator[](uint64_t n);
+    const LasPoint & operator[](uint64_t n) const;
 
 protected:
-    mutable POINT_DATA_RECORD m_pdr;
+    mutable LasPoint m_lasPoint;
     mutable uint64_t m_pointIndex;
 
 private:
-    std::function<void(void)> m_fnReadPointDataRecord;
+    std::function<void(LasReader*)> m_fnReadPointDataRecord;
 
     void readPointDataRecord0();
     void readPointDataRecord1();
@@ -94,8 +99,6 @@ private:
     void readWavePacket();
 
     void readKthPoint(const uint64_t index) const;
-
-    void scalePoint() const;
 };
 
 
