@@ -6,10 +6,6 @@
 
 using namespace std;
 
-string LasDataset::getFileName() const {
-    return m_fileName;
-}
-
 const PUBLIC_HEADER_BLOCK & LasDataset::getPublicHeaderBlock() const {
     return m_publicHeaderBlock;
 }
@@ -84,4 +80,14 @@ double LasDataset::getYOffset() const {
 
 double LasDataset::getZOffset() const {
     return m_publicHeaderBlock.zOffset;
+}
+
+uint64_t LasDataset::getFileSize() const {
+    uint64_t fileSize = m_publicHeaderBlock.offsetToPointData + m_publicHeaderBlock.numberOfPointRecords * m_publicHeaderBlock.pointDataRecordLength;
+    if (!m_EVLRs.empty()) {
+        for (size_t i = 0; i < m_EVLRs.size(); i++) {
+            fileSize += sizeof(EXTENDED_VARIABLE_LENGTH_RECORD_HEADER) + m_EVLRs[i].header.recordLengthAfterHeader;
+        }
+    }
+    return fileSize;
 }

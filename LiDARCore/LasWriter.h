@@ -7,18 +7,19 @@
 
 #include "LasDataset.h"
 #include "LasPoint.h"
+#include "OutMemoryMappedFile.h"
+#include "NonConstContainerBase.h"
 
-class LasWriter : public LasDataset{
+class LasWriter : public virtual LasDataset, public  NonConstContainerBase<LasPoint>{
 public:
+    LasWriter(const char *fileName, const LasDataset &lasDataset);
+
     void create(const char *fileName, const PUBLIC_HEADER_BLOCK &publicHeaderBlock,
                     const std::vector<VARIABLE_LENGTH_RECORD> &VLRs, const std::vector<EXTENDED_VARIABLE_LENGTH_RECORD> &EVLRs);
-    void writePointDataRecord(const LasPoint &lasPoint);
-    void close();
-protected:
-
 private:
-    void writeVariableLengthRecords(const std::vector<VARIABLE_LENGTH_RECORD> &variableLengthRecords);
-    void writePublicHeaderBlock(const PUBLIC_HEADER_BLOCK &publicHeaderBlock);
+    void writeVariableLengthRecords() const;
+    void writePublicHeaderBlock() const;
+    void writeExtendedVariableLengthRecords() const;
 
     void writePointDataRecord0(const LasPoint &lasPoint);
     void writePointDataRecord1(const LasPoint &lasPoint);

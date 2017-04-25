@@ -5,9 +5,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
 set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -m64")
 
-# print runtime output directory
-#message("${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-
 find_package(Boost COMPONENTS iostreams REQUIRED)
 if(Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})

@@ -3,49 +3,16 @@
 //
 
 #include "LasWriter.h"
-#include "LasPoint.h"
-#include <fstream>
 
 using namespace std;
 
-void LasWriter::create(const char *fileName, const PUBLIC_HEADER_BLOCK &publicHeaderBlock,
-                       const std::vector<VARIABLE_LENGTH_RECORD> &VLRs, const std::vector<EXTENDED_VARIABLE_LENGTH_RECORD> &EVLRs)
+LasWriter::LasWriter(const char *fileName, const LasDataset &lasDataset)
 {
-    // Calculate the file size
-    uint64_t fileSize = publicHeaderBlock.offsetToPointData + publicHeaderBlock.numberOfPointRecords * publicHeaderBlock.pointDataRecordLength;
-    if (!EVLRs.empty()) {
-        for (size_t i = 0; i < EVLRs.size(); i++) {
-            fileSize += sizeof(EXTENDED_VARIABLE_LENGTH_RECORD_HEADER) + EVLRs[i].header.recordLengthAfterHeader;
-        }
-    }
+    createFileWithSize(fileName, lasDataset.getFileSize());
 
-    ofstream ofs(fileName, ios_base::binary | ios_base::out);
-    ofs.seekp(fileSize - 1);
-    ofs.write("", 1);
-    ofs.close();
-
-    m_file.open(fileName);
-    m_byteStream.setStream(m_file.data());
-
-    // Write public header block
-    writePublicHeaderBlock(publicHeaderBlock);
-    m_publicHeaderBlock = publicHeaderBlock;
-
-    writeVariableLengthRecords(VLRs);
-    m_VLRs = VLRs;
-
-    if (!EVLRs.empty()) {
-        m_byteStream.seek(publicHeaderBlock.startOfFirstExtendedVariableLengthRecord);
-        for (size_t i = 0; i < EVLRs.size(); i++) {
-            m_byteStream << EVLRs[i].header.reserved
-                         << EVLRs[i].header.userID
-                         << EVLRs[i].header.recordID
-                         << EVLRs[i].header.recordLengthAfterHeader
-                         << EVLRs[i].header.description;
-            m_byteStream.writeBytes(EVLRs[i].record.get(), EVLRs[i].header.recordLengthAfterHeader);
-        }
-    }
-    m_EVLRs = EVLRs;
+    writePublicHeaderBlock();
+    writeVariableLengthRecords();
+    writeExtendedVariableLengthRecords();
 
     // create write point function
     function<void(const LasPoint&)> fnWritePointDataRecordArr[11] = {
@@ -62,81 +29,85 @@ void LasWriter::create(const char *fileName, const PUBLIC_HEADER_BLOCK &publicHe
             bind(&LasWriter::writePointDataRecord10, this, placeholders::_1)};
     m_fnWritePointDataRecord = fnWritePointDataRecordArr[getPointDataRecordFormat()];
 
-    // seek to the point data position
     m_byteStream.seek(getOffsetToPointData());
 }
 
-void LasWriter::writePointDataRecord(const LasPoint &lasPoint)
-{
-    m_fnWritePointDataRecord(lasPoint);
+void LasWriter::writeExtendedVariableLengthRecords() const {
+    if (!m_EVLRs.empty()) {
+        m_byteStream.seek(m_publicHeaderBlock.startOfFirstExtendedVariableLengthRecord);
+        for (size_t i = 0; i < m_EVLRs.size(); i++) {
+            m_byteStream << m_EVLRs[i].header.reserved
+                         << m_EVLRs[i].header.userID
+                         << m_EVLRs[i].header.recordID
+                         << m_EVLRs[i].header.recordLengthAfterHeader
+                         << m_EVLRs[i].header.description;
+            m_byteStream.writeBytes(m_EVLRs[i].record.get(), m_EVLRs[i].header.recordLengthAfterHeader);
+        }
+    }
 }
 
-void LasWriter::close() {
-    m_file.close();
-}
+void LasWriter::writePublicHeaderBlock() const {
+    m_byteStream << m_publicHeaderBlock.fileSignature
+                 << m_publicHeaderBlock.fileSourceID
+                 << m_publicHeaderBlock.globalEncoding
+                 << m_publicHeaderBlock.projectID_GUIDData1
+                 << m_publicHeaderBlock.projectID_GUIDData2
+                 << m_publicHeaderBlock.projectID_GUIDdata3
+                 << m_publicHeaderBlock.projectID_GUIDData4
+                 << m_publicHeaderBlock.versionMajor
+                 << m_publicHeaderBlock.versionMinor
+                 << m_publicHeaderBlock.systemIdentifier
+                 << m_publicHeaderBlock.generatingSoftware
+                 << m_publicHeaderBlock.fileCreationDayOfYear
+                 << m_publicHeaderBlock.fileCreationYear
+                 << m_publicHeaderBlock.headerSize
+                 << m_publicHeaderBlock.offsetToPointData
+                 << m_publicHeaderBlock.numberOfVariableLengthRecords
+                 << m_publicHeaderBlock.pointDataRecordFormat
+                 << m_publicHeaderBlock.pointDataRecordLength;
 
-void LasWriter::writePublicHeaderBlock(const PUBLIC_HEADER_BLOCK &publicHeaderBlock) {
-    m_byteStream << publicHeaderBlock.fileSignature
-                 << publicHeaderBlock.fileSourceID
-                 << publicHeaderBlock.globalEncoding
-                 << publicHeaderBlock.projectID_GUIDData1
-                 << publicHeaderBlock.projectID_GUIDData2
-                 << publicHeaderBlock.projectID_GUIDdata3
-                 << publicHeaderBlock.projectID_GUIDData4
-                 << publicHeaderBlock.versionMajor
-                 << publicHeaderBlock.versionMinor
-                 << publicHeaderBlock.systemIdentifier
-                 << publicHeaderBlock.generatingSoftware
-                 << publicHeaderBlock.fileCreationDayOfYear
-                 << publicHeaderBlock.fileCreationYear
-                 << publicHeaderBlock.headerSize
-                 << publicHeaderBlock.offsetToPointData
-                 << publicHeaderBlock.numberOfVariableLengthRecords
-                 << publicHeaderBlock.pointDataRecordFormat
-                 << publicHeaderBlock.pointDataRecordLength;
-
-    if (publicHeaderBlock.versionMajor == 1 && publicHeaderBlock.versionMinor == 4) {
-        m_byteStream << publicHeaderBlock.legacyNumberOfPointRecords
-                     << publicHeaderBlock.legacyNumberOfPointsByReturn;
+    if (m_publicHeaderBlock.versionMajor == 1 && m_publicHeaderBlock.versionMinor == 4) {
+        m_byteStream << m_publicHeaderBlock.legacyNumberOfPointRecords
+                     << m_publicHeaderBlock.legacyNumberOfPointsByReturn;
     } else {
-        uint32_t numberOfPointRecords = publicHeaderBlock.numberOfPointRecords, numberOfPointsByReturn[5];
+        uint32_t numberOfPointRecords = m_publicHeaderBlock.numberOfPointRecords, numberOfPointsByReturn[5];
         for (size_t i = 0; i < 5; i++)
-            numberOfPointsByReturn[i] = publicHeaderBlock.numberOfPointsByReturn[i];
+            numberOfPointsByReturn[i] = m_publicHeaderBlock.numberOfPointsByReturn[i];
         m_byteStream << numberOfPointRecords
                      << numberOfPointsByReturn;
     }
 
-    m_byteStream << publicHeaderBlock.xScaleFactor
-                 << publicHeaderBlock.yScaleFactor
-                 << publicHeaderBlock.zScaleFactor
-                 << publicHeaderBlock.xOffset
-                 << publicHeaderBlock.yOffset
-                 << publicHeaderBlock.zOffset
-                 << publicHeaderBlock.maxX
-                 << publicHeaderBlock.minX
-                 << publicHeaderBlock.maxY
-                 << publicHeaderBlock.minY
-                 << publicHeaderBlock.maxZ
-                 << publicHeaderBlock.minZ;
-    if (publicHeaderBlock.versionMajor == 1 && publicHeaderBlock.versionMinor == 4) {
-        m_byteStream << publicHeaderBlock.startOfWaveformDataPacketRecord
-                     << publicHeaderBlock.startOfFirstExtendedVariableLengthRecord
-                     << publicHeaderBlock.numberOfExtendedVariableLengthRecords
-                     << publicHeaderBlock.numberOfPointRecords
-                     << publicHeaderBlock.numberOfPointsByReturn;
+    m_byteStream << m_publicHeaderBlock.xScaleFactor
+                 << m_publicHeaderBlock.yScaleFactor
+                 << m_publicHeaderBlock.zScaleFactor
+                 << m_publicHeaderBlock.xOffset
+                 << m_publicHeaderBlock.yOffset
+                 << m_publicHeaderBlock.zOffset
+                 << m_publicHeaderBlock.maxX
+                 << m_publicHeaderBlock.minX
+                 << m_publicHeaderBlock.maxY
+                 << m_publicHeaderBlock.minY
+                 << m_publicHeaderBlock.maxZ
+                 << m_publicHeaderBlock.minZ;
+    if (m_publicHeaderBlock.versionMajor == 1 && m_publicHeaderBlock.versionMinor == 4) {
+        m_byteStream << m_publicHeaderBlock.startOfWaveformDataPacketRecord
+                     << m_publicHeaderBlock.startOfFirstExtendedVariableLengthRecord
+                     << m_publicHeaderBlock.numberOfExtendedVariableLengthRecords
+                     << m_publicHeaderBlock.numberOfPointRecords
+                     << m_publicHeaderBlock.numberOfPointsByReturn;
     }
 }
 
-void LasWriter::writeVariableLengthRecords(const vector<VARIABLE_LENGTH_RECORD> &variableLengthRecords) {
+void LasWriter::writeVariableLengthRecords() const {
     // VARIABLE LENGTH RECORDS
-    for (uint32_t i = 0; i < variableLengthRecords.size(); i++) {
-        m_byteStream << variableLengthRecords[i].header.reserved
-                     << variableLengthRecords[i].header.userID
-                     << variableLengthRecords[i].header.recordID
-                     << variableLengthRecords[i].header.recordLengthAfterHeader
-                     << variableLengthRecords[i].header.description;
-        uint16_t recordLengthAfterHeader = variableLengthRecords[i].header.recordLengthAfterHeader;
-        m_byteStream.writeBytes(variableLengthRecords[i].record.get(), recordLengthAfterHeader);
+    for (uint32_t i = 0; i < m_VLRs.size(); i++) {
+        m_byteStream << m_VLRs[i].header.reserved
+                     << m_VLRs[i].header.userID
+                     << m_VLRs[i].header.recordID
+                     << m_VLRs[i].header.recordLengthAfterHeader
+                     << m_VLRs[i].header.description;
+        uint16_t recordLengthAfterHeader = m_VLRs[i].header.recordLengthAfterHeader;
+        m_byteStream.writeBytes(m_VLRs[i].record.get(), recordLengthAfterHeader);
     }
 }
 

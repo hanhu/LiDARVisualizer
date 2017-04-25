@@ -5,11 +5,8 @@
 #ifndef LIDARVISUALIZER_LASDATASET_H
 #define LIDARVISUALIZER_LASDATASET_H
 
-#include <string>
-#include <memory>
 #include <vector>
-#include <boost/iostreams/device/mapped_file.hpp>
-#include "ByteStream.h"
+#include "MemoryMappedFile.h"
 
 // public header block
 struct PUBLIC_HEADER_BLOCK {
@@ -85,8 +82,6 @@ struct EXTENDED_VARIABLE_LENGTH_RECORD {
 // las dataset
 class LasDataset {
 public:
-    std::string getFileName() const;
-
     const PUBLIC_HEADER_BLOCK& getPublicHeaderBlock() const;
     const std::vector<VARIABLE_LENGTH_RECORD>& getVariableLengthRecords() const;
     const std::vector<EXTENDED_VARIABLE_LENGTH_RECORD> getExtendedVariableLengthRecords() const;
@@ -109,14 +104,12 @@ public:
     double getXOffset()      const;
     double getYOffset()      const;
     double getZOffset()      const;
-protected:
+
+    uint64_t getFileSize()   const;
+
     PUBLIC_HEADER_BLOCK m_publicHeaderBlock;
     std::vector<VARIABLE_LENGTH_RECORD> m_VLRs;
     std::vector<EXTENDED_VARIABLE_LENGTH_RECORD> m_EVLRs;
-
-    std::string                   m_fileName;
-    boost::iostreams::mapped_file m_file;
-    mutable ByteStream                    m_byteStream;
 };
 
 #endif //LIDARVISUALIZER_LASDATASET_H

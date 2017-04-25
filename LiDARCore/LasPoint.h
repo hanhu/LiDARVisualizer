@@ -107,6 +107,10 @@ public:
     inline int32_t getZ() const { return basicPointData.record0.Z; }
     inline uint16_t getIntensity() const { return basicPointData.record0.intensity; }
 
+    inline double getXCoordinate() const { return m_lasQuantizer.getXCoordinate(getX()); }
+    inline double getYCoordinate() const { return m_lasQuantizer.getYCoordinate(getY()); }
+    inline double getZCoordinate() const { return m_lasQuantizer.getZCoordinate(getZ()); }
+
     inline uint8_t getReturnNumber() const {
         if (getPointDataRecordFormat() < 6)
             return basicPointData.record0.returnNumber;

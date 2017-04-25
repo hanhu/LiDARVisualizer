@@ -9,80 +9,17 @@
 #include <functional>
 #include "LasDataset.h"
 #include "LasPoint.h"
+#include "ConstContainerBase.h"
+#include "Iterator.h"
+#include "ConstIterator.h"
 
-class LasReader;
-
-class LasReaderIterator {
+class LasReader : public LasDataset, public ConstContainerBase<LasPoint>{
 public:
-    LasReader& m_lasReader;
-    uint64_t m_pointIndex;
-    LasReaderIterator(LasReader& lasReader, uint64_t pointIndex);
+    LasReader(const char* fileName);
 
-    // Copy assignment operator and constructor
-    LasReaderIterator(const LasReaderIterator& other);
-
-    // Move assignment operator and constructor
-    LasReaderIterator(LasReaderIterator&& other);
-
-    LasPoint & operator*() const;
-    LasPoint * operator->() const;
-    void operator++();
-    void operator++(int);
-    bool operator<(const LasReaderIterator& rhs) const;
-};
-
-class LasReaderConstIterator {
-public:
-    const LasReader& m_lasReader;
-    uint64_t m_pointIndex;
-    LasReaderConstIterator(const LasReader& lasReader, uint64_t pointIndex);
-    LasReaderConstIterator(const LasReaderIterator& iterator);
-
-    const LasPoint & operator*() const;
-    const LasPoint * operator->() const;
-    void operator++();
-    void operator++(int);
-    bool operator<(const LasReaderConstIterator& rhs) const;
-};
-
-class LasReader : public LasDataset{
-public:
-    void open(const char* fileName);
-    void close();
-
-    friend class LasReaderIterator;
-    friend class LasReaderConstIterator;
-
-    typedef LasReaderIterator iterator;
-    typedef LasReaderConstIterator const_iterator;
-
-    iterator begin();
-    const_iterator begin() const;
-
-    iterator end();
-    const_iterator end() const;
-
-    iterator rbegin();
-    const_iterator rbegin() const;
-
-    iterator rend();
-    const_iterator rend() const;
-
-    LasPoint & front();
-    const LasPoint & front() const;
-
-    LasPoint & back();
-    const LasPoint & back() const;
-
-    LasPoint & operator[](uint64_t n);
-    const LasPoint & operator[](uint64_t n) const;
-
-protected:
-    mutable LasPoint m_lasPoint;
-    mutable uint64_t m_pointIndex;
-
+    void readKthElement(const uint64_t k) const override;
 private:
-    std::function<void(LasReader*)> m_fnReadPointDataRecord;
+    std::function<void(LasReader *)> m_fnRead;
 
     void readPointDataRecord0();
     void readPointDataRecord1();
@@ -97,8 +34,6 @@ private:
     void readPointDataRecord10();
 
     void readWavePacket();
-
-    void readKthPoint(const uint64_t index) const;
 };
 
 
